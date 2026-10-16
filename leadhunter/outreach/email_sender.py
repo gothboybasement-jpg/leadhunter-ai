@@ -113,7 +113,7 @@ class EmailSender:
         tags = lead.tags or {}
         app_status = tags.get("approval_status", lead.status.value)
         if lead.status != LeadStatus.APPROVED and app_status != "APPROVED":
-            return False, f"Lead is not APPROVED (status: {lead.status.value})"
+            print(f"SKIP: not approved - {lead.name} status={lead.status.value}"); return False, f"Lead is not APPROVED (status: {lead.status.value})"
 
         # 2. Valid email
         if not is_valid_email(lead.email):
