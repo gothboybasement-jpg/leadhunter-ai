@@ -1,29 +1,56 @@
-"""Email enrichment: scrape contact emails from business websites."""
-import sqlite3, re, sys, time
+"""Email enrichment with junk filtering and domain matching."""
+import sqlite3, re, time
+from urllib.parse import urlparse
 import httpx
 
 DB = 'data/leadhunter.db'
 EMAIL_RE = re.compile(r'[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}')
-BAD = ('example.com', 'sentry.io', 'wixpress.com', 'wix.com', 'godaddy.com',
-       'cloudflare.com', 'google.com', 'schema.org', 'w3.org', 'sample.com')
 PATHS = ['', '/contact', '/contact-us', '/about', '/about-us', '/reach-us']
 HEADERS = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'}
 
-def good(email):
-    e = email.lower()
-    if any(b in e for b in BAD):
-        return False
-    if e.endswith(('.png', '.jpg', '.gif', '.svg', '.webp', '.css', '.js')):
-        return False
-    return True
+BAD_PATTERNS = [
+    'example', 'placeholder', 'noreply', 'no-reply', 'donotreply',
+    'webmaster', 'postmaster', 'abuse@', 'sentry.io', 'wixpress',
+    'wix.com', 'godaddy', 'squarespace', 'shopify', 'wordpress',
+    'cloudflare', 'schema.org', 'w3.org', 'localhost',
+    'email@address', 'your@email', 'youremail', 'test@', 'user@',
+    'swissdigitech', 'webdesign', 'webdesigner', 'siteby'
+]
+BAD_TLDS = ['.png', '.jpg', '.jpeg', '.gif', '.svg', '.webp', '.css', '.js', '.ico']
 
-def scrape(base):
+
+def is_junk(email):
+    e = email.lower()
+    if any(b in e for b in BAD_PATTERNS):
+        return True
+    if any(e.endswith(t) for t in BAD_TLDS):
+        return True
+    if len(e) > 60:
+        return True
+    return False
+
+
+def domain_of(url):
+    if not url:
+        return ''
+    try:
+        if not url.startswith('http'):
+            url = 'https://' + url
+        d = urlparse(url).netloc.lower()
+        if d.startswith('www.'):
+            d = d[4:]
+        return d
+    except Exception:
+        return ''
+
+
+def scrape(base, site_domain):
     if not base:
-        return None
+        return None, None
     if not base.startswith('http'):
         base = 'https://' + base
     base = base.rstrip('/')
-    found = set()
+    found = []
     for path in PATHS:
         url = base + path
         try:
@@ -31,31 +58,48 @@ def scrape(base):
                 r = c.get(url)
             if r.status_code == 200:
                 for m in EMAIL_RE.findall(r.text):
-                    if good(m):
-                        found.add(m.lower())
+                    m = m.lower()
+                    if not is_junk(m) and m not in found:
+                        found.append(m)
         except Exception:
             continue
         if found:
             break
         time.sleep(0.3)
-    return sorted(found)[0] if found else None
+    if not found:
+        return None, None
+    if site_domain:
+        domain_root = site_domain.split('.')[0]
+        for e in found:
+            if site_domain in e or domain_root in e:
+                return e, 'DOMAIN_MATCH'
+    return found[0], 'LOW_QUALITY'
+
 
 def main():
     c = sqlite3.connect(DB)
-    rows = c.execute("SELECT id, name, website FROM leads WHERE (email IS NULL OR email='') AND website IS NOT NULL AND website != ''").fetchall()
+    rows = c.execute("""
+        SELECT id, name, website FROM leads
+        WHERE (email IS NULL OR email = '')
+        AND website IS NOT NULL AND website != ''
+    """).fetchall()
     print(f"Found {len(rows)} leads to enrich")
     updated = 0
+    skipped = 0
     for lead_id, name, site in rows:
-        print(f"[{lead_id}] {name} -> ", end='', flush=True)
-        email = scrape(site)
+        domain = domain_of(site)
+        print(f"[{lead_id}] {name} (domain: {domain}) -> ", end='', flush=True)
+        email, tag = scrape(site, domain)
         if email:
             c.execute("UPDATE leads SET email=? WHERE id=?", (email, lead_id))
             c.commit()
-            print(email)
+            print(f"{email} [{tag}]")
             updated += 1
         else:
-            print("(none)")
-    print(f"\nDone. Enriched {updated}/{len(rows)} leads.")
+            print("(no valid email found)")
+            skipped += 1
+    print(f"\nDone. Enriched {updated}/{len(rows)} leads. Skipped {skipped}.")
+
 
 if __name__ == '__main__':
     main()
