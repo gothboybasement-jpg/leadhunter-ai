@@ -79,100 +79,60 @@ TIER_LOW = "LOW"
 
 
 def evaluate_lead(lead: Lead) -> Tuple[int, str, List[str], str]:
-    """Calculate lead score, tier, and qualification reason for a verified lead.
-
-    Returns:
-        (lead_score, lead_tier, breakdown_reasons, qualification_reason)
-    """
+    """Score a lead for AI RECEPTIONIST fit."""
     score = 0
     reasons: List[str] = []
 
-    # 1. Website Signals
-    site_status = lead.website_status or STATUS_UNKNOWN
-
-    if site_status == STATUS_NO_WEBSITE:
-        score += 40
-        reasons.append("NO_WEBSITE (+40)")
-    elif site_status == STATUS_BROKEN_WEBSITE:
-        score += 35
-        reasons.append("BROKEN_WEBSITE (+35)")
-    elif site_status == STATUS_SOCIAL_ONLY:
-        score += 30
-        reasons.append("SOCIAL_ONLY (+30)")
-    elif site_status == STATUS_DIRECTORY_ONLY:
-        score += 28
-        reasons.append("DIRECTORY_ONLY (+28)")
-    elif site_status == STATUS_DOMAIN_ONLY:
-        score += 20
-        reasons.append("DOMAIN_ONLY (+20)")
-    elif site_status == STATUS_VALID_WEBSITE:
-        score += 0
-        reasons.append("VALID_WEBSITE (+0, skip target)")
-    else:
-        score += 0
-        reasons.append(f"{site_status} (+0)")
-
-    # 2. Business Signals
-    # Phone
     phone = lead.phone or lead.phone_normalized
     if phone and str(phone).strip():
-        score += 15
-        reasons.append(f"has_phone (+15): {phone}")
+        score += 30
+        reasons.append(f"has_phone (+30): {phone}")
 
-    # Email
-    if lead.email and str(lead.email).strip():
-        score += 10
-        reasons.append(f"has_email (+10): {lead.email}")
-
-    # Rating & Reviews
-    rating = lead.rating
     reviews = lead.reviews_count or 0
+    if reviews >= 100:
+        score += 25
+        reasons.append(f"lots_of_reviews (+25): {reviews}")
+    elif reviews >= 20:
+        score += 20
+        reasons.append(f"has_reviews (+20): {reviews}")
+    elif reviews >= 5:
+        score += 10
+        reasons.append(f"some_reviews (+10): {reviews}")
 
-    if rating is not None and rating >= 4.0 and reviews >= 20:
+    rating = lead.rating
+    if rating is not None and rating >= 4.0:
         score += 15
-        reasons.append(f"high_reputation (+15): {rating}★ with {reviews} reviews")
-    elif rating is not None and 3.0 <= rating < 4.0 and reviews > 0:
+        reasons.append(f"high_rating (+15): {rating}")
+    elif rating is not None and rating >= 3.5:
         score += 8
-        reasons.append(f"moderate_reputation (+8): {rating}★ with {reviews} reviews")
+        reasons.append(f"ok_rating (+8): {rating}")
 
-    # Instagram
-    has_instagram = False
-    if lead.tags and isinstance(lead.tags, dict):
-        if lead.tags.get("instagram") or "instagram.com" in str(lead.tags):
-            has_instagram = True
-    if lead.website and "instagram.com" in lead.website.lower():
-        has_instagram = True
-
-    if has_instagram:
-        score += 5
-        reasons.append("has_instagram (+5)")
-
-    # Target Category Match
-    cat_lower = (lead.category or "").lower()
-    is_target_cat = any(t in cat_lower for t in TARGET_CATEGORIES)
-    if is_target_cat:
+    cat = (lead.category or "").lower()
+    target_cats = ["dentist", "dental", "doctor", "clinic", "medical",
+                   "plumber", "hvac", "electrician", "roofer", "contractor",
+                   "lawyer", "attorney", "salon", "spa", "gym", "restaurant"]
+    if any(t in cat for t in target_cats):
         score += 10
         reasons.append(f"target_category (+10): {lead.category}")
 
-    # 3. Determine Tier
-    if not (lead.email and str(lead.email).strip()): reasons.append("NO_EMAIL (-100)"); score -= 100
-    if score >= 70:
+    if lead.email and str(lead.email).strip():
+        score += 5
+        reasons.append("has_email (+5)")
+
+    if score >= 60:
         tier = TIER_HOT
-    elif score >= 45:
+    elif score >= 35:
         tier = TIER_WARM
     else:
         tier = TIER_LOW
 
-    # 4. Qualification summary reason
-    if tier == TIER_HOT:
-        qual_reason = f"HOT Lead ({score} pts): {site_status} with strong business profile"
-    elif tier == TIER_WARM:
-        qual_reason = f"WARM Lead ({score} pts): Qualified prospect ({site_status})"
-    else:
-        qual_reason = f"LOW Lead ({score} pts): Below qualification threshold ({site_status})"
-
+    qualified = score >= 35
+    qual_reason = (
+        f"Score {score} - qualified for AI receptionist pitch"
+        if qualified else
+        f"Score {score} - below WARM threshold (35)"
+    )
     return score, tier, reasons, qual_reason
-
 
 def score_and_qualify_leads(
     db: Optional[Database] = None,
