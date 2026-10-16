@@ -278,12 +278,12 @@ class EmailSender:
     ) -> List[Dict[str, Any]]:
         """Process email delivery for all APPROVED leads."""
         query = (
-            "SELECT * FROM leads WHERE status = 'APPROVED' AND sent_at IS NULL "
+            "SELECT * FROM leads WHERE status = 'APPROVED' AND last_contacted_at IS NULL "
             "ORDER BY id ASC LIMIT ?"
         )
         if city:
             query = (
-                f"SELECT * FROM leads WHERE status = 'APPROVED' AND sent_at IS NULL "
+                f"SELECT * FROM leads WHERE status = 'APPROVED' AND last_contacted_at IS NULL "
                 f"AND city = '{city}' ORDER BY id ASC LIMIT ?"
             )
 
