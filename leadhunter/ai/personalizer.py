@@ -38,7 +38,7 @@ SYSTEM_PROMPT = (
     "Never invent facts about the practice. End with 'Best regards' only. "
     "Include the pricing clearly in the message."
 )
-MODEL_NAME = os.environ.get("ANTHROPIC_MODEL", "claude-sonnet-4-6")
+MODEL_NAME = os.environ.get("ANTHROPIC_MODEL", "claude-haiku-4-5")
 
 
 def get_anthropic_key(config: Optional[Config] = None) -> Optional[str]:
