@@ -1,7 +1,5 @@
 import sqlite3
 c = sqlite3.connect('data/leadhunter.db')
-# Approve anything with an email message and a real email address,
-# but never re-approve anything already sent
 c.execute("""UPDATE leads SET status='APPROVED'
              WHERE email IS NOT NULL AND email != ''
              AND email_message IS NOT NULL AND email_message != ''
