@@ -31,7 +31,7 @@ jobs:
           DATABASE_PATH: data/leadhunter.db
           ANTHROPIC_MODEL: claude-haiku-4-5
         run: |
-          CITIES=("Scottsdale" "Tempe" "Mesa" "Chandler" "Gilbert" "Glendale" "Peoria" "Surprise")
+          CITIES=("Phoenix" "Tampa" "Austin" "Dallas" "Atlanta" "Nashville" "Charlotte" "Raleigh" "Scottsdale" "Boise" "Salt Lake City" "Denver" "Las Vegas" "Orlando" "San Antonio")
           CITY=${CITIES[$RANDOM % ${#CITIES[@]}]}
           echo "Running pipeline for: $CITY"
           python main.py --city "$CITY" --category "dentist" --discover --limit 10
@@ -41,4 +41,3 @@ jobs:
           python main.py --city "$CITY" --personalize --limit 10
           python approve.py
           python main.py --city "$CITY" --outreach --limit 10
-          python main.py --city "Phoenix" --outreach --limit 10
