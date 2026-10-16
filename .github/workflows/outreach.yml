@@ -17,28 +17,76 @@ jobs:
           python-version: '3.11'
 
       - name: Install dependencies
+        continue-on-error: true
         run: |
           pip install -r requirements.txt
           pip install pyyaml gspread google-auth google-auth-oauthlib google-auth-httplib2 fastapi uvicorn jinja2 python-multipart python-dotenv tenacity httpx beautifulsoup4 lxml requests aiofiles serpapi anthropic
 
-      - name: Run Pipeline
+      - name: Auto-heal database
+        continue-on-error: true
+        env:
+          DATABASE_PATH: data/leadhunter.db
+        run: python autoheal.py
+
+      - name: Discover
+        continue-on-error: true
+        env:
+          SERPAPI_API_KEY: ${{ secrets.SERPAPI_API_KEY }}
+          DATABASE_PATH: data/leadhunter.db
+        run: python main.py --city "Atlanta" --category "dentist" --discover --limit 10
+
+      - name: Verify
+        continue-on-error: true
+        env:
+          SERPAPI_API_KEY: ${{ secrets.SERPAPI_API_KEY }}
+          DATABASE_PATH: data/leadhunter.db
+        run: python main.py --city "Atlanta" --category "dentist" --verify --limit 20
+
+      - name: Score
+        continue-on-error: true
+        env:
+          DATABASE_PATH: data/leadhunter.db
+        run: python main.py --score --limit 50
+
+      - name: Enrich emails
+        continue-on-error: true
+        env:
+          DATABASE_PATH: data/leadhunter.db
+        run: python enrich.py
+
+      - name: Personalize
         continue-on-error: true
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          ANTHROPIC_MODEL: claude-haiku-4-5
+          DATABASE_PATH: data/leadhunter.db
+        run: python main.py --city "Atlanta" --personalize --limit 10
+
+      - name: Approve (non-interactive)
+        continue-on-error: true
+        env:
+          DATABASE_PATH: data/leadhunter.db
+        run: python approve.py
+
+      - name: Outreach
+        continue-on-error: true
+        env:
           SENDER_EMAIL: ${{ secrets.SENDER_EMAIL }}
           GMAIL_APP_PASSWORD: ${{ secrets.GMAIL_APP_PASSWORD }}
-          SERPAPI_API_KEY: ${{ secrets.SERPAPI_API_KEY }}
-          DRY_RUN: "false"
           DATABASE_PATH: data/leadhunter.db
-          ANTHROPIC_MODEL: claude-haiku-4-5
+          DRY_RUN: "false"
+        run: python main.py --city "Atlanta" --outreach --limit 10
+
+      - name: Summary
+        if: always()
+        env:
+          DATABASE_PATH: data/leadhunter.db
         run: |
-          CITIES=("Phoenix" "Tampa" "Austin" "Dallas" "Atlanta" "Nashville" "Charlotte" "Raleigh" "Scottsdale" "Boise" "Salt Lake City" "Denver" "Las Vegas" "Orlando" "San Antonio")
-          CITY=${CITIES[$RANDOM % ${#CITIES[@]}]}
-          echo "Running pipeline for: $CITY"
-          python main.py --city "$CITY" --category "dentist" --discover --limit 10
-          python main.py --city "$CITY" --category "dentist" --verify --limit 20
-          python main.py --score --limit 50
-          python enrich.py
-          python main.py --city "$CITY" --personalize --limit 10
-          python approve.py
-          python main.py --city "$CITY" --outreach --limit 10
+          python -c "
+import sqlite3, os
+db = os.environ.get('DATABASE_PATH', 'data/leadhunter.db')
+c = sqlite3.connect(db)
+for s in ['DISCOVERED','VERIFIED','QUALIFIED','PERSONALIZED','APPROVED','SENT']:
+    n = c.execute('SELECT COUNT(*) FROM leads WHERE status=?', (s,)).fetchone()[0]
+    print(f'{s}: {n}')
+"
