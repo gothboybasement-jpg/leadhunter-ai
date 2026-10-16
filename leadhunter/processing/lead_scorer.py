@@ -167,7 +167,7 @@ def score_and_qualify_leads(
 
     query = "SELECT * FROM leads WHERE status = 'VERIFIED' ORDER BY id ASC LIMIT ?"
     if city:
-        query = f"SELECT * FROM leads WHERE status = 'VERIFIED' AND city = '{city}' ORDER BY id ASC LIMIT ?"
+        query = "SELECT * FROM leads WHERE status = 'VERIFIED' ORDER BY id ASC LIMIT ?"
 
     rows = db.conn.execute(query, (limit,)).fetchall()
     leads = [Lead.from_row(dict(r)) for r in rows]
