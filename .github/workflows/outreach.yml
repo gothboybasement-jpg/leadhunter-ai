@@ -46,7 +46,7 @@ jobs:
         continue-on-error: true
         env:
           DATABASE_PATH: data/leadhunter.db
-        run: python main.py --score --limit 50
+        run: python main.py --city "Atlanta" --score --limit 50
 
       - name: Enrich emails
         continue-on-error: true
