@@ -1,0 +1,109 @@
+# ============================================================
+# Environment & Secrets (NEVER commit real credentials)
+# ============================================================
+.env
+.env.*
+!.env.example
+*.env
+google_creds.json
+*credentials*.json
+*secret*.json
+client_secret*.json
+service_account*.json
+token.json
+.streamlit/secrets.toml
+
+# ============================================================
+# Local Runtime Data & Database
+# ============================================================
+data/
+*.db
+*.db-wal
+*.db-shm
+*.sqlite
+*.sqlite3
+*.sqlite3-journal
+
+# ============================================================
+# Python Virtual Environments & Bytecode
+# ============================================================
+__pycache__/
+*.py[codz]
+*$py.class
+*.so
+.Python
+.venv/
+venv/
+env/
+ENV/
+env.bak/
+venv.bak/
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# ============================================================
+# Testing & Code Quality
+# ============================================================
+htmlcov/
+.tox/
+.nox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+*.py.cover
+.hypothesis/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.dmypy.json
+dmypy.json
+
+# ============================================================
+# Logs
+# ============================================================
+*.log
+logs/
+pip-log.txt
+pip-delete-this-directory.txt
+
+# ============================================================
+# IDEs & Editor Files
+# ============================================================
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.spyderproject
+.spyproject
+.ropeproject
+tempCodeRunnerFile.py
+
+# ============================================================
+# Operating System Files
+# ============================================================
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
