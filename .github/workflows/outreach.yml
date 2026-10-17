@@ -22,6 +22,15 @@ jobs:
           pip install -r requirements.txt
           pip install pyyaml gspread google-auth google-auth-oauthlib google-auth-httplib2 fastapi uvicorn jinja2 python-multipart python-dotenv tenacity httpx beautifulsoup4 lxml requests aiofiles serpapi anthropic
 
+      - name: Pick today's city
+        id: pick
+        run: |
+          CITIES=("Scottsdale" "Miami" "Beverly Hills" "Aspen" "Austin" "Newport Beach" "Nashville")
+          DAY=$(date +%u)
+          CITY=${CITIES[$((DAY % 7))]}
+          echo "city=$CITY" >> $GITHUB_OUTPUT
+          echo "Today's target: med spa in $CITY"
+
       - name: Auto-heal database
         continue-on-error: true
         env:
@@ -33,20 +42,20 @@ jobs:
         env:
           SERPAPI_API_KEY: ${{ secrets.SERPAPI_API_KEY }}
           DATABASE_PATH: data/leadhunter.db
-        run: python main.py --city "Miami" --category "med spa" --discover --limit 10
+        run: python main.py --city "${{ steps.pick.outputs.city }}" --category "med spa" --discover --limit 15
 
       - name: Verify
         continue-on-error: true
         env:
           SERPAPI_API_KEY: ${{ secrets.SERPAPI_API_KEY }}
           DATABASE_PATH: data/leadhunter.db
-        run: python main.py --city "Miami" --category "med spa" --verify --limit 20
+        run: python main.py --city "${{ steps.pick.outputs.city }}" --category "med spa" --verify --limit 25
 
       - name: Score
         continue-on-error: true
         env:
           DATABASE_PATH: data/leadhunter.db
-        run: python main.py --city "Miami" --score --limit 50
+        run: python main.py --score --limit 50
 
       - name: Enrich emails
         continue-on-error: true
@@ -60,7 +69,7 @@ jobs:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
           ANTHROPIC_MODEL: claude-haiku-4-5
           DATABASE_PATH: data/leadhunter.db
-        run: python main.py --city "Miami" --personalize --limit 10
+        run: python main.py --city "${{ steps.pick.outputs.city }}" --personalize --limit 15
 
       - name: Approve (non-interactive)
         continue-on-error: true
@@ -75,4 +84,4 @@ jobs:
           GMAIL_APP_PASSWORD: ${{ secrets.GMAIL_APP_PASSWORD }}
           DATABASE_PATH: data/leadhunter.db
           DRY_RUN: "false"
-        run: python main.py --city "Miami" --outreach --limit 10
+        run: python main.py --city "${{ steps.pick.outputs.city }}" --outreach --limit 15
