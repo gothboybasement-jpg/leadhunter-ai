@@ -186,6 +186,7 @@ class EmailSender:
 
             tags["email_status"] = "DRY_RUN_SENT"
             tags["email_sent_at"] = now
+            tags["last_contacted_at"] = now
             lead.tags = tags
 
             update_fields = {
@@ -228,6 +229,7 @@ class EmailSender:
             self.rate_limiter.record_email()
             tags["email_status"] = "SENT"
             tags["email_sent_at"] = now
+            tags["last_contacted_at"] = now
             lead.tags = tags
 
             update_fields = {
@@ -252,6 +254,7 @@ class EmailSender:
                 "email": lead.email,
                 "status": "SENT",
                 "sent_at": now,
+                    "last_contacted_at": now,
             }
 
         except Exception as exc:
