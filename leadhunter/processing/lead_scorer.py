@@ -143,25 +143,25 @@ def evaluate_lead(lead: Lead) -> Tuple[int, str, List[str], str]:
         reasons.append(f"target_category (+10): {lead.category}")
 
     # 5. Email present (must — we send pitches)
-    if not lead.email or not str(lead.email).strip():
-        reasons.append("NO_EMAIL (disqualified)")
-        return 0, TIER_LOW, reasons, "No email - cannot contact"
-    score += 5
-    reasons.append("has_email (+5)")
+    if lead.email and str(lead.email).strip():
+        score += 5
+        reasons.append("has_email (+5)")
+    else:
+        reasons.append("no_email (will try to enrich)")
 
     # Determine tier
     if score >= 60:
         tier = TIER_HOT
-    elif score >= 40:
+    elif score >= 30:
         tier = TIER_WARM
     else:
         tier = TIER_LOW
 
-    qualified = score >= 40
+    qualified = score >= 30
     qual_reason = (
         f"Score {score} - qualified: solo operator with phone and good reputation"
         if qualified else
-        f"Score {score} - below threshold (40)"
+        f"Score {score} - below threshold (30)"
     )
     return score, tier, reasons, qual_reason
 
