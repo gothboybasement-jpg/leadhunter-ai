@@ -25,14 +25,15 @@ jobs:
       - name: Pick today's target
         id: pick
         run: |
-          CITIES=("Scottsdale" "Miami" "Beverly Hills" "Austin" "Newport Beach" "Nashville" "Denver")
-          CATEGORIES=("med spa" "real estate agent" "law firm" "insurance agency" "med spa" "real estate agent" "law firm")
-          DAY=$(date +%u)
-          CITY=${CITIES[$((DAY % 7))]}
-          CAT=${CATEGORIES[$((DAY % 7))]}
+          CITIES=("Denver" "Scottsdale" "Miami" "Beverly Hills" "Austin" "Newport Beach" "Nashville")
+          CATEGORIES=("law firm" "med spa" "real estate agent" "law firm" "insurance agency" "med spa" "real estate agent")
+          DOW=$(date +%u)
+          IDX=$((DOW % 7))
+          CITY=${CITIES[$IDX]}
+          CAT=${CATEGORIES[$IDX]}
           echo "city=$CITY" >> $GITHUB_OUTPUT
           echo "cat=$CAT" >> $GITHUB_OUTPUT
-          echo "Today: $CAT in $CITY"
+          echo "Today ($DOW): $CAT in $CITY"
 
       - name: Auto-heal database
         continue-on-error: true
