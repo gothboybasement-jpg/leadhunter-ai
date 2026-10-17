@@ -22,14 +22,17 @@ jobs:
           pip install -r requirements.txt
           pip install pyyaml gspread google-auth google-auth-oauthlib google-auth-httplib2 fastapi uvicorn jinja2 python-multipart python-dotenv tenacity httpx beautifulsoup4 lxml requests aiofiles serpapi anthropic
 
-      - name: Pick today's city
+      - name: Pick today's target
         id: pick
         run: |
-          CITIES=("Scottsdale" "Miami" "Beverly Hills" "Aspen" "Austin" "Newport Beach" "Nashville")
+          CITIES=("Scottsdale" "Miami" "Beverly Hills" "Austin" "Newport Beach" "Nashville" "Denver")
+          CATEGORIES=("med spa" "real estate agent" "law firm" "insurance agency" "med spa" "real estate agent" "law firm")
           DAY=$(date +%u)
           CITY=${CITIES[$((DAY % 7))]}
+          CAT=${CATEGORIES[$((DAY % 7))]}
           echo "city=$CITY" >> $GITHUB_OUTPUT
-          echo "Today's target: med spa in $CITY"
+          echo "cat=$CAT" >> $GITHUB_OUTPUT
+          echo "Today: $CAT in $CITY"
 
       - name: Auto-heal database
         continue-on-error: true
@@ -42,14 +45,14 @@ jobs:
         env:
           SERPAPI_API_KEY: ${{ secrets.SERPAPI_API_KEY }}
           DATABASE_PATH: data/leadhunter.db
-        run: python main.py --city "${{ steps.pick.outputs.city }}" --category "med spa" --discover --limit 15
+        run: python main.py --city "${{ steps.pick.outputs.city }}" --category "${{ steps.pick.outputs.cat }}" --discover --limit 15
 
       - name: Verify
         continue-on-error: true
         env:
           SERPAPI_API_KEY: ${{ secrets.SERPAPI_API_KEY }}
           DATABASE_PATH: data/leadhunter.db
-        run: python main.py --city "${{ steps.pick.outputs.city }}" --category "med spa" --verify --limit 25
+        run: python main.py --city "${{ steps.pick.outputs.city }}" --category "${{ steps.pick.outputs.cat }}" --verify --limit 25
 
       - name: Score
         continue-on-error: true
