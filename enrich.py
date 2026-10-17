@@ -16,6 +16,9 @@ BAD_PATTERNS = [
     'email@address', 'your@email', 'youremail', 'test@', 'user@',
     'swissdigitech', 'webdesign', 'webdesigner', 'siteby'
 ]
+
+# Generic inboxes that get filtered by staff
+GENERIC_INBOXES = ['info@', 'contact@', 'admin@', 'support@', 'hello@', 'office@', 'team@', 'sales@']
 BAD_TLDS = ['.png', '.jpg', '.jpeg', '.gif', '.svg', '.webp', '.css', '.js', '.ico']
 
 
@@ -70,9 +73,16 @@ def scrape(base, site_domain):
         return None, None
     if site_domain:
         domain_root = site_domain.split('.')[0]
+        # First, try to find a personal, non-generic email
         for e in found:
+            if any(g in e for g in GENERIC_INBOXES):
+                continue
             if site_domain in e or domain_root in e:
                 return e, 'DOMAIN_MATCH'
+        # Fallback to any domain-matched email (even generic)
+        for e in found:
+            if site_domain in e or domain_root in e:
+                return e, 'GENERIC_MATCH'
     return found[0], 'LOW_QUALITY'
 
 
