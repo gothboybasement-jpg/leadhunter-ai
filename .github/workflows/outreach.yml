@@ -33,14 +33,14 @@ jobs:
         env:
           SERPAPI_API_KEY: ${{ secrets.SERPAPI_API_KEY }}
           DATABASE_PATH: data/leadhunter.db
-        run: python main.py --city "Miami" --category "real estate" --discover --limit 10
+        run: python main.py --city "Miami" --category "med spa" --discover --limit 10
 
       - name: Verify
         continue-on-error: true
         env:
           SERPAPI_API_KEY: ${{ secrets.SERPAPI_API_KEY }}
           DATABASE_PATH: data/leadhunter.db
-        run: python main.py --city "Miami" --category "real estate" --verify --limit 20
+        run: python main.py --city "Miami" --category "med spa" --verify --limit 20
 
       - name: Score
         continue-on-error: true
