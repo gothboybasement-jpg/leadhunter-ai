@@ -25,8 +25,8 @@ jobs:
       - name: Pick today's target
         id: pick
         run: |
-          CITIES=("Denver" "Scottsdale" "Miami" "Beverly Hills" "Austin" "Newport Beach" "Nashville")
-          CATEGORIES=("law firm" "med spa" "real estate agent" "law firm" "insurance agency" "med spa" "real estate agent")
+          CITIES=("Beverly Hills" "Miami" "Austin" "Scottsdale" "Charlotte" "Manhattan" "Newport Beach")
+          CATEGORIES=("real estate agent" "insurance agency" "law firm" "med spa" "mortgage broker" "real estate agent" "med spa")
           DOW=$(date +%u)
           IDX=$((DOW % 7))
           CITY=${CITIES[$IDX]}
