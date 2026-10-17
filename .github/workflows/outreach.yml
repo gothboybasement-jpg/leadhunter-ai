@@ -33,20 +33,20 @@ jobs:
         env:
           SERPAPI_API_KEY: ${{ secrets.SERPAPI_API_KEY }}
           DATABASE_PATH: data/leadhunter.db
-        run: python main.py --city "Atlanta" --category "dentist" --discover --limit 10
+        run: python main.py --city "Miami" --category "real estate" --discover --limit 10
 
       - name: Verify
         continue-on-error: true
         env:
           SERPAPI_API_KEY: ${{ secrets.SERPAPI_API_KEY }}
           DATABASE_PATH: data/leadhunter.db
-        run: python main.py --city "Atlanta" --category "dentist" --verify --limit 20
+        run: python main.py --city "Miami" --category "real estate" --verify --limit 20
 
       - name: Score
         continue-on-error: true
         env:
           DATABASE_PATH: data/leadhunter.db
-        run: python main.py --city "Atlanta" --score --limit 50
+        run: python main.py --city "Miami" --score --limit 50
 
       - name: Enrich emails
         continue-on-error: true
@@ -60,7 +60,7 @@ jobs:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
           ANTHROPIC_MODEL: claude-haiku-4-5
           DATABASE_PATH: data/leadhunter.db
-        run: python main.py --city "Atlanta" --personalize --limit 10
+        run: python main.py --city "Miami" --personalize --limit 10
 
       - name: Approve (non-interactive)
         continue-on-error: true
@@ -75,4 +75,4 @@ jobs:
           GMAIL_APP_PASSWORD: ${{ secrets.GMAIL_APP_PASSWORD }}
           DATABASE_PATH: data/leadhunter.db
           DRY_RUN: "false"
-        run: python main.py --city "Atlanta" --outreach --limit 10
+        run: python main.py --city "Miami" --outreach --limit 10
