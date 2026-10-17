@@ -79,58 +79,89 @@ TIER_LOW = "LOW"
 
 
 def evaluate_lead(lead: Lead) -> Tuple[int, str, List[str], str]:
-    """Score a lead for AI RECEPTIONIST fit."""
+    """Score a lead for AI receptionist fit.
+
+    Target: solo/small business owners who miss calls because they have
+    no staff and no system. Signals:
+    - Has phone (they take calls)
+    - Has rating 4.0+ (they care about reputation)
+    - LOW review count (solo operator, not a team)
+    - Small/medium web presence (not established enterprise)
+    """
     score = 0
     reasons: List[str] = []
 
+    # 1. Phone (must have — they answer calls themselves)
     phone = lead.phone or lead.phone_normalized
-    if phone and str(phone).strip():
-        score += 30
-        reasons.append(f"has_phone (+30): {phone}")
+    if not phone or not str(phone).strip():
+        reasons.append("NO_PHONE (disqualified)")
+        return 0, TIER_LOW, reasons, "No phone - not a fit"
+    score += 30
+    reasons.append(f"has_phone (+30): {phone}")
 
+    # 2. Review count — this is the KEY signal for solo vs. team
     reviews = lead.reviews_count or 0
-    if reviews >= 100:
-        score += 25
-        reasons.append(f"lots_of_reviews (+25): {reviews}")
+    if reviews >= 200:
+        # Big operation, likely has staff or answering service
+        score -= 20
+        reasons.append(f"TOO_BIG (-20): {reviews} reviews - already has a system")
+    elif reviews >= 100:
+        score -= 10
+        reasons.append(f"large_operation (-10): {reviews} reviews")
     elif reviews >= 20:
-        score += 20
-        reasons.append(f"has_reviews (+20): {reviews}")
+        # Sweet spot — some success, no team yet
+        score += 25
+        reasons.append(f"sweet_spot_reviews (+25): {reviews} reviews - solo operator likely")
     elif reviews >= 5:
-        score += 10
-        reasons.append(f"some_reviews (+10): {reviews}")
-
-    rating = lead.rating
-    if rating is not None and rating >= 4.0:
         score += 15
-        reasons.append(f"high_rating (+15): {rating}")
-    elif rating is not None and rating >= 3.5:
-        score += 8
-        reasons.append(f"ok_rating (+8): {rating}")
+        reasons.append(f"small_operator (+15): {reviews} reviews")
+    else:
+        score += 5
+        reasons.append(f"new_or_tiny (+5): {reviews} reviews")
 
+    # 3. Rating — must have good reputation
+    rating = lead.rating
+    if rating is not None and rating >= 4.5:
+        score += 20
+        reasons.append(f"excellent_rating (+20): {rating}")
+    elif rating is not None and rating >= 4.0:
+        score += 15
+        reasons.append(f"good_rating (+15): {rating}")
+    elif rating is not None and rating >= 3.5:
+        score += 5
+        reasons.append(f"ok_rating (+5): {rating}")
+    else:
+        reasons.append(f"low_rating (0): {rating}")
+
+    # 4. Category match
     cat = (lead.category or "").lower()
-    target_cats = ["dentist", "dental", "doctor", "clinic", "medical",
-                   "plumber", "hvac", "electrician", "roofer", "contractor",
-                   "lawyer", "attorney", "salon", "spa", "gym", "restaurant"]
+    target_cats = ["real estate", "realtor", "mortgage", "insurance",
+                   "law firm", "attorney", "med spa", "dentist", "dental",
+                   "chiropractor", "plumber", "hvac", "electrician"]
     if any(t in cat for t in target_cats):
         score += 10
         reasons.append(f"target_category (+10): {lead.category}")
 
-    if lead.email and str(lead.email).strip():
-        score += 5
-        reasons.append("has_email (+5)")
+    # 5. Email present (must — we send pitches)
+    if not lead.email or not str(lead.email).strip():
+        reasons.append("NO_EMAIL (disqualified)")
+        return 0, TIER_LOW, reasons, "No email - cannot contact"
+    score += 5
+    reasons.append("has_email (+5)")
 
+    # Determine tier
     if score >= 60:
         tier = TIER_HOT
-    elif score >= 35:
+    elif score >= 40:
         tier = TIER_WARM
     else:
         tier = TIER_LOW
 
-    qualified = score >= 35
+    qualified = score >= 40
     qual_reason = (
-        f"Score {score} - qualified for AI receptionist pitch"
+        f"Score {score} - qualified: solo operator with phone and good reputation"
         if qualified else
-        f"Score {score} - below WARM threshold (35)"
+        f"Score {score} - below threshold (40)"
     )
     return score, tier, reasons, qual_reason
 
