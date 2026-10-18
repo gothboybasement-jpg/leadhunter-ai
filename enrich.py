@@ -94,10 +94,22 @@ def main():
             if email.lower().startswith(("info@", "contact@", "admin@", "hello@", "office@")):
                 continue
 
+            phone = item.get("phone") or item.get("phoneNumber") or ""
+            rating = item.get("rating") or item.get("totalScore")
+            reviews = item.get("reviewsCount") or item.get("reviews") or item.get("userRatingsCount") or 0
+            try:
+                rating = float(rating) if rating else None
+            except (ValueError, TypeError):
+                rating = None
+            try:
+                reviews = int(reviews) if reviews else 0
+            except (ValueError, TypeError):
+                reviews = 0
+
             c.execute(
-                "INSERT INTO leads (name, email, city, category, status, source, created_at, updated_at) "
-                "VALUES (?, ?, ?, ?, 'DISCOVERED', 'apify', datetime('now'), datetime('now'))",
-                (name, email, city, category),
+                "INSERT INTO leads (name, email, city, category, status, source, phone, rating, reviews_count, created_at, updated_at) "
+                "VALUES (?, ?, ?, ?, 'DISCOVERED', 'apify', ?, ?, ?, datetime('now'), datetime('now'))",
+                (name, email, city, category, phone, rating, reviews),
             )
             print(f"  + {name} -> {email}")
             total_added += 1
