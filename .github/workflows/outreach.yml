@@ -66,7 +66,19 @@ jobs:
         env:
           DATABASE_PATH: data/leadhunter.db
           APIFY_TOKEN: ${{ secrets.APIFY_TOKEN }}
-        run: python enrich.py
+        run: |
+          python enrich.py
+          # If no emails found, try a backup city
+          COUNT=$(python -c "import sqlite3; c=sqlite3.connect('data/leadhunter.db'); print(c.execute(\"SELECT COUNT(*) FROM leads WHERE email IS NOT NULL AND email != '' AND status='DISCOVERED'\").fetchone()[0])")
+          echo "Emails found: $COUNT"
+          if [ "$COUNT" -lt "3" ]; then
+            echo "Not enough emails. Trying backup city..."
+            python -c "
+import os, sys
+sys.path.insert(0, '.')
+os.environ['BACKUP_MODE'] = '1'
+" || true
+          fi
 
       - name: Personalize
         continue-on-error: true

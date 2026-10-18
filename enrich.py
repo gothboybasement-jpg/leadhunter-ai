@@ -89,7 +89,7 @@ def main():
             email_status = item.get("emailStatus") or ""
             email = item.get("email") or ""
 
-            if not email or email_status != "valid" or not name:
+            if not email or email_status not in ("valid", "risky-role") or not name:
                 continue
             if email.lower().startswith(("info@", "contact@", "admin@", "hello@", "office@")):
                 continue
