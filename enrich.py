@@ -8,7 +8,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 APIFY_TOKEN = os.environ.get("APIFY_TOKEN")
-ACTOR_ID = "leadharbor~google-maps-verified-email-scraper"
+ACTOR_ID = "compass~crawler-google-places"
 DB = 'data/leadhunter.db'
 
 def run_apify(city, category, limit=20):
