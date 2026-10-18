@@ -1,115 +1,110 @@
-"""Email enrichment with junk filtering and domain matching."""
-import sqlite3, re, time
-from urllib.parse import urlparse
-import httpx
+"""Email enrichment using Apify Google Maps Email Scraper."""
+import sqlite3
+import os
+import time
+import requests
+from dotenv import load_dotenv
 
+load_dotenv()
+
+APIFY_TOKEN = os.environ.get("APIFY_TOKEN")
+ACTOR_ID = "leadharbor~google-maps-verified-email-scraper"
 DB = 'data/leadhunter.db'
-EMAIL_RE = re.compile(r'[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}')
-PATHS = ['', '/contact', '/contact-us', '/about', '/about-us', '/reach-us']
-HEADERS = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'}
 
-BAD_PATTERNS = [
-    'example', 'placeholder', 'noreply', 'no-reply', 'donotreply',
-    'webmaster', 'postmaster', 'abuse@', 'sentry.io', 'wixpress',
-    'wix.com', 'godaddy', 'squarespace', 'shopify', 'wordpress',
-    'cloudflare', 'schema.org', 'w3.org', 'localhost',
-    'email@address', 'your@email', 'youremail', 'test@', 'user@',
-    'swissdigitech', 'webdesign', 'webdesigner', 'siteby'
-]
-
-# Generic inboxes that get filtered by staff
-GENERIC_INBOXES = ['info@', 'contact@', 'admin@', 'support@', 'hello@', 'office@', 'team@', 'sales@']
-BAD_TLDS = ['.png', '.jpg', '.jpeg', '.gif', '.svg', '.webp', '.css', '.js', '.ico']
-
-
-def is_junk(email):
-    e = email.lower()
-    if any(b in e for b in BAD_PATTERNS):
-        return True
-    if any(e.endswith(t) for t in BAD_TLDS):
-        return True
-    if len(e) > 60:
-        return True
-    return False
-
-
-def domain_of(url):
-    if not url:
-        return ''
+def run_apify(city, category, limit=20):
+    """Run Apify. 200 and 201 are both success codes."""
+    url = f"https://api.apify.com/v2/acts/{ACTOR_ID}/run-sync-get-dataset-items"
+    payload = {
+        "business_types": [category],
+        "location": city,
+        "max_results": limit,
+    }
     try:
-        if not url.startswith('http'):
-            url = 'https://' + url
-        d = urlparse(url).netloc.lower()
-        if d.startswith('www.'):
-            d = d[4:]
-        return d
-    except Exception:
-        return ''
+        r = requests.post(url, params={"token": APIFY_TOKEN}, json=payload, timeout=300)
+        if r.status_code not in (200, 201):
+            print(f"  Apify error: {r.status_code} {r.text[:200]}")
+            return []
+        return r.json() or []
+    except Exception as e:
+        print(f"  Apify exception: {e}")
+        return []
 
-
-def scrape(base, site_domain):
-    if not base:
-        return None, None
-    if not base.startswith('http'):
-        base = 'https://' + base
-    base = base.rstrip('/')
-    found = []
-    for path in PATHS:
-        url = base + path
-        try:
-            with httpx.Client(timeout=10, follow_redirects=True, headers=HEADERS) as c:
-                r = c.get(url)
-            if r.status_code == 200:
-                for m in EMAIL_RE.findall(r.text):
-                    m = m.lower()
-                    if not is_junk(m) and m not in found:
-                        found.append(m)
-        except Exception:
-            continue
-        if found:
-            break
-        time.sleep(0.3)
-    if not found:
-        return None, None
-    if site_domain:
-        domain_root = site_domain.split('.')[0]
-        # First, try to find a personal, non-generic email
-        for e in found:
-            if any(g in e for g in GENERIC_INBOXES):
-                continue
-            if site_domain in e or domain_root in e:
-                return e, 'DOMAIN_MATCH'
-        # Fallback to any domain-matched email (even generic)
-        for e in found:
-            if site_domain in e or domain_root in e:
-                return e, 'GENERIC_MATCH'
-    return found[0], 'LOW_QUALITY'
-
+def parse_emails(email_string):
+    """Extract valid personal emails from Apify output."""
+    if not email_string:
+        return None
+    if isinstance(email_string, list):
+        for e in email_string:
+            if isinstance(e, dict):
+                if e.get("emailStatus") == "valid":
+                    email = e.get("email", "")
+                    if email and not email.lower().startswith(("info@", "contact@", "admin@", "hello@")):
+                        return email
+            elif isinstance(e, str) and "(valid)" in e:
+                email = e.split("(")[0].strip()
+                if not email.lower().startswith(("info@", "contact@", "admin@", "hello@")):
+                    return email
+        return None
+    # String format: "email (valid); other (risky)"
+    parts = str(email_string).split(";")
+    for part in parts:
+        part = part.strip()
+        if "(valid)" in part:
+            email = part.split("(")[0].strip()
+            if not email.lower().startswith(("info@", "contact@", "admin@", "hello@")):
+                return email
+    return None
 
 def main():
-    c = sqlite3.connect(DB)
-    rows = c.execute("""
-        SELECT id, name, website FROM leads
-        WHERE (email IS NULL OR email = '')
-        AND website IS NOT NULL AND website != ''
-    """).fetchall()
-    print(f"Found {len(rows)} leads to enrich")
-    updated = 0
-    skipped = 0
-    for lead_id, name, site in rows:
-        domain = domain_of(site)
-        print(f"[{lead_id}] {name} (domain: {domain}) -> ", end='', flush=True)
-        email, tag = scrape(site, domain)
-        if email:
-            c.execute("UPDATE leads SET email=? WHERE id=?", (email, lead_id))
-            c.commit()
-            print(f"{email} [{tag}]")
-            updated += 1
-        else:
-            print("(no valid email found)")
-            skipped += 1
-    print(f"\nDone. Enriched {updated}/{len(rows)} leads. Skipped {skipped}.")
+    if not APIFY_TOKEN:
+        print("APIFY_TOKEN not set in .env")
+        return
 
+    c = sqlite3.connect(DB)
+
+    # Use only clean target categories
+    import datetime
+
+    # Same rotation as the GitHub workflow
+    CITIES = ["Tampa", "Charlotte", "Nashville", "Scottsdale", "Austin", "Raleigh", "Phoenix"]
+    CATEGORIES = ["real estate agent", "insurance agency", "law firm", "med spa", "mortgage broker", "real estate agent", "med spa"]
+
+    # %u = Monday is 1, Sunday is 7 (matches workflow)
+    dow = datetime.datetime.utcnow().isoweekday()
+    idx = dow % 7
+    city = CITIES[idx]
+    category = CATEGORIES[idx]
+
+    print(f"Today ({dow}): {category} in {city}")
+    targets = [(city, category)]
+
+    total_added = 0
+    for city, category in targets:
+        print(f"\n=== Searching {category} in {city} ===")
+        results = run_apify(city, category, limit=20)
+        print(f"  Got {len(results)} results")
+
+        for item in results:
+            name = item.get("name") or ""
+            email_status = item.get("emailStatus") or ""
+            email = item.get("email") or ""
+
+            if not email or email_status != "valid" or not name:
+                continue
+            if email.lower().startswith(("info@", "contact@", "admin@", "hello@", "office@")):
+                continue
+
+            c.execute(
+                "INSERT INTO leads (name, email, city, category, status, source, created_at, updated_at) "
+                "VALUES (?, ?, ?, ?, 'DISCOVERED', 'apify', datetime('now'), datetime('now'))",
+                (name, email, city, category),
+            )
+            print(f"  + {name} -> {email}")
+            total_added += 1
+        c.commit()
+        time.sleep(2)
+
+    print(f"\nDone. Added {total_added} leads with valid emails.")
 
 if __name__ == '__main__':
     main()
