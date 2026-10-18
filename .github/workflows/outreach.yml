@@ -46,14 +46,14 @@ jobs:
         env:
           SERPAPI_API_KEY: ${{ secrets.SERPAPI_API_KEY }}
           DATABASE_PATH: data/leadhunter.db
-        run: python main.py --city "${{ steps.pick.outputs.city }}" --category "${{ steps.pick.outputs.cat }}" --discover --limit 15
+        run: python main.py --city "${{ steps.pick.outputs.city }}" --category "${{ steps.pick.outputs.cat }}" --discover --limit 50
 
       - name: Verify
         continue-on-error: true
         env:
           SERPAPI_API_KEY: ${{ secrets.SERPAPI_API_KEY }}
           DATABASE_PATH: data/leadhunter.db
-        run: python main.py --city "${{ steps.pick.outputs.city }}" --category "${{ steps.pick.outputs.cat }}" --verify --limit 25
+        run: python main.py --city "${{ steps.pick.outputs.city }}" --category "${{ steps.pick.outputs.cat }}" --verify --limit 60
 
       - name: Score
         continue-on-error: true
@@ -66,19 +66,7 @@ jobs:
         env:
           DATABASE_PATH: data/leadhunter.db
           APIFY_TOKEN: ${{ secrets.APIFY_TOKEN }}
-        run: |
-          python enrich.py
-          # If no emails found, try a backup city
-          COUNT=$(python -c "import sqlite3; c=sqlite3.connect('data/leadhunter.db'); print(c.execute(\"SELECT COUNT(*) FROM leads WHERE email IS NOT NULL AND email != '' AND status='DISCOVERED'\").fetchone()[0])")
-          echo "Emails found: $COUNT"
-          if [ "$COUNT" -lt "3" ]; then
-            echo "Not enough emails. Trying backup city..."
-            python -c "
-import os, sys
-sys.path.insert(0, '.')
-os.environ['BACKUP_MODE'] = '1'
-" || true
-          fi
+        run: python enrich.py
 
       - name: Personalize
         continue-on-error: true
@@ -86,7 +74,7 @@ os.environ['BACKUP_MODE'] = '1'
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
           ANTHROPIC_MODEL: claude-haiku-4-5
           DATABASE_PATH: data/leadhunter.db
-        run: python main.py --city "${{ steps.pick.outputs.city }}" --personalize --limit 15
+        run: python main.py --city "${{ steps.pick.outputs.city }}" --personalize --limit 30
 
       - name: Approve (non-interactive)
         continue-on-error: true
@@ -101,4 +89,4 @@ os.environ['BACKUP_MODE'] = '1'
           GMAIL_APP_PASSWORD: ${{ secrets.GMAIL_APP_PASSWORD }}
           DATABASE_PATH: data/leadhunter.db
           DRY_RUN: "false"
-        run: python main.py --city "${{ steps.pick.outputs.city }}" --outreach --limit 15
+        run: python main.py --city "${{ steps.pick.outputs.city }}" --outreach --limit 30
