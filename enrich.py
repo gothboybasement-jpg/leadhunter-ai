@@ -91,7 +91,25 @@ def main():
 
             if not email or email_status not in ("valid", "risky-role") or not name:
                 continue
-            if email.lower().startswith(("info@", "contact@", "admin@", "hello@", "office@")):
+            if email.lower().startswith(("info@", "contact@", "admin@", "hello@", "office@", "staff@", "patientcare@")):
+                continue
+
+            # STRICT CATEGORY FILTER
+            # If the category doesn't match what we asked for, skip it.
+            item_cat = (item.get("category") or "").lower()
+            target_cat = category.lower()
+            
+            # Define keyword matches
+            match = False
+            if "real estate" in target_cat and ("real estate" in item_cat or "realtor" in item_cat): match = True
+            elif "insurance" in target_cat and ("insurance" in item_cat or "agency" in item_cat): match = True
+            elif "law firm" in target_cat and ("law" in item_cat or "attorney" in item_cat or "legal" in item_cat): match = True
+            elif "med spa" in target_cat and ("spa" in item_cat or "medical" in item_cat or "clinic" in item_cat): match = True
+            elif "mortgage" in target_cat and ("mortgage" in item_cat or "broker" in item_cat or "lender" in item_cat): match = True
+            elif target_cat in item_cat: match = True
+
+            if not match and item_cat:
+                print(f"  Skipping {name} (category mismatch: {item_cat})")
                 continue
 
             phone = item.get("phone") or item.get("phoneNumber") or ""
