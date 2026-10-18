@@ -1,4 +1,4 @@
-"""AI Message Personalization module for LeadHunter AI.
+﻿"""AI Message Personalization module for LeadHunter AI.
 
 Generates tailored cold email and WhatsApp outreach messages for QUALIFIED leads
 using the Anthropic Python SDK (model claude-sonnet-4-6).
@@ -83,7 +83,7 @@ Guidelines:
 3. Content Context:
    - If website_status is NO_WEBSITE: focus on opportunity and customer discovery, not failure.
    - If website_status is BROKEN_WEBSITE: mention "I noticed your site seems to be down".
-   - If website_status is SOCIAL_ONLY: mention "I see you're active on Instagram — a website could help customers find you faster".
+   - If website_status is SOCIAL_ONLY: mention "I see you're active on Instagram â€” a website could help customers find you faster".
 4. Include the placeholder {{{{DEMO_URL}}}} in both messages where the prospective demo site should be linked.
 5. Strictly adhere to: never invent services, prices, menu items, or awards not in the lead data.
 
@@ -101,7 +101,7 @@ def generate_template_fallback(lead: Lead) -> Dict[str, str]:
     name = lead.name
     city = lead.city
     category = lead.category or "business"
-    rating = f"{lead.rating}★" if lead.rating else "top-rated"
+    rating = f"{lead.rating}â˜…" if lead.rating else "top-rated"
     reviews = f"{lead.reviews_count} Google reviews" if lead.reviews_count else "great customer reviews"
     site_status = lead.website_status or "NO_WEBSITE"
 
@@ -110,19 +110,19 @@ def generate_template_fallback(lead: Lead) -> Dict[str, str]:
         email_hook = f"I noticed your website seems to be down when searching for {name} in {city}."
         wa_hook = f"I noticed your site seems to be down while looking up {name}."
     elif site_status == "SOCIAL_ONLY":
-        email_hook = f"I see you're active on social media — a dedicated website could help customers find and book with you faster."
-        wa_hook = f"I see you're active on Instagram — a website could help customers find you faster."
+        email_hook = f"I see you're active on social media â€” a dedicated website could help customers find and book with you faster."
+        wa_hook = f"I see you're active on Instagram â€” a website could help customers find you faster."
     else:  # NO_WEBSITE or other
         email_hook = f"With {reviews} ({rating}), you have strong local reputation in {city}. Having a modern website would help direct customers find your menu and location directly."
         wa_hook = f"With {reviews} ({rating}), {name} has great local popularity in {city}."
 
-    email_subject = f"Website concept for {name}, {city}"
+    email_subject = f"Never miss another call at {name}"
     email_body = (
         f"Hi Team {name},\n\n"
-        f"{email_hook}\n\n"
-        f"I put together a clean, mobile-friendly landing page preview for {name} to show how your brand can look online: {{{{DEMO_URL}}}}\n\n"
-        f"Would you be open to a quick 5-minute chat this week if you'd like to put this live?\n\n"
-        f"Best regards,\nWeb Design Consultant"
+        f"With {reviews} ({rating}), you clearly deliver great service in {city}. But when your team is busy or after hours, missed calls go to voicemail.\n\n"
+        f"I set up AI receptionists for businesses like yours. It answers every call 24/7 and books appointments directly into your calendar.\n\n"
+        f"Setup is $500, then $300/month. Would this help you capture more calls?\n\n"
+        f"Best regards"
     )
 
     wa_body = (
@@ -326,16 +326,16 @@ def main():
     results = personalize_qualified_leads(city=args.city, limit=args.limit, delay_s=args.delay)
 
     print("\n==========================================================================================")
-    print("                    LEADHUNTER AI — GENERATED OUTREACH MESSAGES                           ")
+    print("                    LEADHUNTER AI â€” GENERATED OUTREACH MESSAGES                           ")
     print("==========================================================================================")
     for r in results:
         print(f"\n------------------------------------------------------------------------------------------")
         print(f"Lead ID {r['id']} | {r['name']} ({r['city']}) | Tier: {r['lead_tier']} | Status: {r['website_status']}")
         print(f"------------------------------------------------------------------------------------------")
-        print(f"📧 COLD EMAIL:")
+        print(f"ðŸ“§ COLD EMAIL:")
         print(f"Subject: {r['email_subject']}")
         print(f"\n{r['email_message']}")
-        print(f"\n📱 WHATSAPP MESSAGE:")
+        print(f"\nðŸ“± WHATSAPP MESSAGE:")
         print(f"{r['whatsapp_message']}")
 
 
