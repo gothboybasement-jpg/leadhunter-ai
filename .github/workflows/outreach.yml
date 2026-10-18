@@ -55,18 +55,18 @@ jobs:
           DATABASE_PATH: data/leadhunter.db
         run: python main.py --city "${{ steps.pick.outputs.city }}" --category "${{ steps.pick.outputs.cat }}" --verify --limit 60
 
-      - name: Score
-        continue-on-error: true
-        env:
-          DATABASE_PATH: data/leadhunter.db
-        run: python main.py --score --limit 50
-
       - name: Enrich emails
         continue-on-error: true
         env:
           DATABASE_PATH: data/leadhunter.db
           APIFY_TOKEN: ${{ secrets.APIFY_TOKEN }}
         run: python enrich.py
+
+      - name: Score
+        continue-on-error: true
+        env:
+          DATABASE_PATH: data/leadhunter.db
+        run: python main.py --score --limit 50
 
       - name: Personalize
         continue-on-error: true
