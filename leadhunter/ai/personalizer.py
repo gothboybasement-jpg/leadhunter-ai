@@ -1,4 +1,4 @@
-﻿"""AI Message Personalization module for LeadHunter AI.
+"""AI Message Personalization module for LeadHunter AI.
 
 Generates tailored cold email and WhatsApp outreach messages for QUALIFIED leads
 using the Anthropic Python SDK.
@@ -160,7 +160,7 @@ def personalize_qualified_leads(
             config = None
 
     if db is None:
-        db = Database()
+        db = Database(path="data/leadhunter.db")
 
     # Query leads with status QUALIFIED and HOT or WARM tier
     if city:
