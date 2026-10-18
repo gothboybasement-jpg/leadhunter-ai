@@ -14,8 +14,15 @@ DB = 'data/leadhunter.db'
 def run_apify(city, category, limit=20):
     """Run Apify. 200 and 201 are both success codes."""
     url = f"https://api.apify.com/v2/acts/{ACTOR_ID}/run-sync-get-dataset-items"
+    # This actor expects "searchStringsArray" or "business_types" depending on version.
+    # We also adjust the category name to match Google Maps better.
+    if category == "real estate agent":
+        search_cat = "real estate agency"
+    else:
+        search_cat = category
+
     payload = {
-        "business_types": [category],
+        "business_types": [search_cat],
         "location": city,
         "max_results": limit,
     }
