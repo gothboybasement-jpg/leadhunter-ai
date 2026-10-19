@@ -19,7 +19,7 @@ HEADERS = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'}
 BAD_PATTERNS = ['example', 'noreply', 'sentry', 'wixpress', 'godaddy', 'cloudflare', 'schema.org']
 GENERIC = ['info@', 'contact@', 'admin@', 'hello@', 'office@', 'staff@', 'patientcare@']
 
-def run_apify(city, category, limit=20):
+def run_apify(city, category, limit=150):
     url = f"https://api.apify.com/v2/acts/{ACTOR_ID}/run-sync-get-dataset-items"
     payload = {
         "searchStringsArray": [category],
@@ -77,12 +77,12 @@ def main():
     category = CATEGORIES[idx]
 
     print(f"Today ({dow}): {category} in {city}")
-    results = run_apify(city, category, limit=20)
+    results = run_apify(city, category, limit=150)
     print(f"Got {len(results)} businesses from Google Maps.")
 
     added = 0
     for item in results:
-        name = item.get("title") or item.get("name") or ""
+        name = item.get("title") or item.get("name") or item.get("businessName") or ""
         website = item.get("website") or ""
         phone = item.get("phone") or ""
         rating = item.get("totalScore") or item.get("rating")
