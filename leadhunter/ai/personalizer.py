@@ -30,7 +30,7 @@ SYSTEM_PROMPT = (
     "the front desk is busy or closed, it answers instead of going to voicemail. "
     "PRICING: $500 setup fee (one-time) plus $300 per month. First month of service "
     "is included in the setup fee. "
-    "RULES: 5 to 7 sentences maximum. Mention the practice by name and reference "
+    "RULES: 3 to 5 sentences maximum. Write a short, curiosity-inducing subject line like "Missed calls after 5?" or "Quick question for the owner". Mention the practice by name and reference "
     "their real rating and review count. NEVER claim their website is missing or "
     "broken, and never mention websites. NEVER use placeholders like {DEMO_URL}. "
     "NEVER ask for a phone call or meeting; ask a simple yes or no question instead. "
