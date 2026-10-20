@@ -2,7 +2,7 @@ name: Daily Outreach
 
 on:
   schedule:
-    - cron: '0 14 * * 1'
+    - cron: '0 14 * * *'
   workflow_dispatch:
 
 jobs:
@@ -22,19 +22,6 @@ jobs:
           pip install -r requirements.txt
           pip install pyyaml gspread google-auth google-auth-oauthlib google-auth-httplib2 fastapi uvicorn jinja2 python-multipart python-dotenv tenacity httpx beautifulsoup4 lxml requests aiofiles serpapi anthropic
 
-      - name: Pick today's target
-        id: pick
-        run: |
-          CITIES=("Tampa" "Charlotte" "Nashville" "Scottsdale" "Austin" "Raleigh" "Phoenix")
-          CATEGORIES=("real estate agent" "insurance agency" "law firm" "med spa" "mortgage broker" "real estate agent" "med spa")
-          DOW=$(date +%u)
-          IDX=$((DOW % 7))
-          CITY=${CITIES[$IDX]}
-          CAT=${CATEGORIES[$IDX]}
-          echo "city=$CITY" >> $GITHUB_OUTPUT
-          echo "cat=$CAT" >> $GITHUB_OUTPUT
-          echo "Today ($DOW): $CAT in $CITY"
-
       - name: Auto-heal database
         continue-on-error: true
         env:
@@ -46,14 +33,20 @@ jobs:
         env:
           SERPAPI_API_KEY: ${{ secrets.SERPAPI_API_KEY }}
           DATABASE_PATH: data/leadhunter.db
-        run: python main.py --city "${{ steps.pick.outputs.city }}" --category "${{ steps.pick.outputs.cat }}" --discover --limit 50
+        run: python main.py --city "Nashville" --category "law firm" --discover --limit 50
 
       - name: Verify
         continue-on-error: true
         env:
           SERPAPI_API_KEY: ${{ secrets.SERPAPI_API_KEY }}
           DATABASE_PATH: data/leadhunter.db
-        run: python main.py --city "${{ steps.pick.outputs.city }}" --category "${{ steps.pick.outputs.cat }}" --verify --limit 60
+        run: python main.py --city "Nashville" --category "law firm" --verify --limit 60
+
+      - name: Score
+        continue-on-error: true
+        env:
+          DATABASE_PATH: data/leadhunter.db
+        run: python main.py --score --limit 50
 
       - name: Enrich emails
         continue-on-error: true
@@ -62,19 +55,13 @@ jobs:
           APIFY_TOKEN: ${{ secrets.APIFY_TOKEN }}
         run: python enrich.py
 
-      - name: Score
-        continue-on-error: true
-        env:
-          DATABASE_PATH: data/leadhunter.db
-        run: python main.py --score --limit 50
-
       - name: Personalize
         continue-on-error: true
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
           ANTHROPIC_MODEL: claude-haiku-4-5
           DATABASE_PATH: data/leadhunter.db
-        run: python main.py --city "${{ steps.pick.outputs.city }}" --personalize --limit 30
+        run: python main.py --city "Nashville" --personalize --limit 50
 
       - name: Approve (non-interactive)
         continue-on-error: true
@@ -89,4 +76,4 @@ jobs:
           GMAIL_APP_PASSWORD: ${{ secrets.GMAIL_APP_PASSWORD }}
           DATABASE_PATH: data/leadhunter.db
           DRY_RUN: "false"
-        run: python main.py --city "${{ steps.pick.outputs.city }}" --outreach --limit 30
+        run: python main.py --city "Nashville" --outreach --limit 50
