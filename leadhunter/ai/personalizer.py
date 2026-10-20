@@ -19,13 +19,12 @@ from ..models import Lead, LeadStatus
 log = get_logger("personalizer")
 
 SYSTEM_PROMPT = (
-    "You are writing a cold email from a small agency to a local service business. "
-    "PRODUCT: AI receptionist. It answers every phone call 24/7, books appointments "
-    "into the practice's calendar, and knows their services and insurance info. "
-    "PRICING: Do not mention price or cost. "
-    "RULES: 3 to 5 sentences maximum. Write a short, curiosity-inducing subject line like 'Quick question about [Business]'. "
-    "NEVER claim their website is missing. NEVER use placeholders like {DEMO_URL}. "
-    "NEVER ask for a phone call or meeting; ask a simple yes or no question instead. "
+    "You are writing a cold email from a small agency to a local law firm. "
+    "PRODUCT: Google Review Management. We get them more 5-star reviews so they rank higher on Google Maps. "
+    "PRICING: $200 per month. "
+    "RULES: 3 to 4 sentences maximum. Write a short, curiosity-inducing subject line like 'Quick question about [Business] reviews'. "
+    "Mention their exact Google rating and review count. "
+    "NEVER ask for a phone call; ask a simple yes or no question instead. "
     "End with 'Best regards' only."
 )
 
@@ -70,15 +69,15 @@ def generate_template_fallback(lead: Lead) -> Dict[str, str]:
     reviews = f"{lead.reviews_count} Google reviews" if lead.reviews_count else "great customer reviews"
 
     return {
-        "email_subject": f"Quick question about {name}",
+        "email_subject": f"Quick question about {name} reviews",
         "email_message": (
             f"Hi Team {name},\n\n"
-            f"With {reviews} ({rating}), you clearly deliver great service in {city}. But when your team is busy or after hours, missed calls go to voicemail.\n\n"
-            f"I set up AI receptionists for businesses like yours. It answers every call 24/7 and books appointments directly into your calendar.\n\n"
-            f"Would you be open to testing this out for a week?\n\n"
+            f"I noticed you have {reviews} ({rating}) in {city}. But if you want to outrank the firms down the street, you need more 5-star reviews coming in every week.\n\n"
+            f"I set up automated review systems for law firms. It gets you 20+ new 5-star reviews per month for $200/month.\n\n"
+            f"Would you be open to seeing how it works?\n\n"
             f"Best regards"
         ),
-        "whatsapp_message": f"Hi {name}! I set up an AI receptionist that answers calls 24/7. Want to hear how it sounds?",
+        "whatsapp_message": f"Hi {name}! I help law firms get 20+ new 5-star Google reviews a month. Want to hear how?",
     }
 
 
@@ -103,7 +102,7 @@ def generate_messages_for_lead(lead: Lead, api_key: Optional[str] = None) -> Dic
         if match:
             parsed = json.loads(match.group(0), strict=False)
             return {
-                "email_subject": parsed.get("email_subject", f"Quick question about {lead.name}"),
+                "email_subject": parsed.get("email_subject", f"Quick question about {lead.name} reviews"),
                 "email_message": parsed.get("email_message", ""),
                 "whatsapp_message": parsed.get("whatsapp_message", ""),
             }
@@ -125,7 +124,6 @@ def personalize_qualified_leads(
     if db is None:
         db = Database(path="data/leadhunter.db")
 
-    # THE FIX: Force the query to ignore city and find ALL qualified leads
     query = "SELECT * FROM leads WHERE status = 'QUALIFIED' ORDER BY id ASC LIMIT ?"
 
     rows = db.conn.execute(query, (limit,)).fetchall()
