@@ -20,7 +20,7 @@ class RateLimiter:
     def __init__(
         self,
         config: Optional[Config] = None,
-        max_emails_per_hour: int = 10,
+        max_emails_per_hour: int = 50,
         max_whatsapp_per_hour: int = 20,
     ):
         self.config = config
