@@ -22,11 +22,11 @@ SYSTEM_PROMPT = (
     "You are writing a cold email from a small agency to a local service business. "
     "PRODUCT: AI receptionist. It answers every phone call 24/7, books appointments "
     "into the practice's calendar, and knows their services and insurance info. "
-    ""
+    "PRICING: Do not mention price or cost. "
     "RULES: 3 to 5 sentences maximum. Write a short, curiosity-inducing subject line like 'Quick question about [Business]'. "
     "NEVER claim their website is missing. NEVER use placeholders like {DEMO_URL}. "
     "NEVER ask for a phone call or meeting; ask a simple yes or no question instead. "
-    "End with 'Best regards' only. Do not mention price or cost."
+    "End with 'Best regards' only."
 )
 
 MODEL_NAME = os.environ.get("ANTHROPIC_MODEL", "claude-haiku-4-5")
@@ -125,7 +125,7 @@ def personalize_qualified_leads(
     if db is None:
         db = Database(path="data/leadhunter.db")
 
-    # Force the query to just look at all QUALIFIED leads, regardless of city
+    # THE FIX: Force the query to ignore city and find ALL qualified leads
     query = "SELECT * FROM leads WHERE status = 'QUALIFIED' ORDER BY id ASC LIMIT ?"
 
     rows = db.conn.execute(query, (limit,)).fetchall()
