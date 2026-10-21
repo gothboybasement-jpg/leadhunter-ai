@@ -19,12 +19,12 @@ from ..models import Lead, LeadStatus
 log = get_logger("personalizer")
 
 SYSTEM_PROMPT = (
-    "You are writing a cold email from a small agency to a local law firm. "
+    "You are writing a cold email from a small agency to a local med spa. "
     "PRODUCT: Automated Review Request System. We text their happy clients to ask for a 5-star review. "
     "PRICING: $200 per month. "
     "RULES: 4 to 5 sentences maximum. Write a direct subject line like 'Quick question about [Business Name] reviews'. "
     "Mention their exact Google rating and review count. "
-    "Paint a scenario: imagine a happy client walking out of the office. Tell them your system automatically texts the client this exact message: 'Hi [Client Name], thanks for trusting us with your case. If you have 30 seconds, would you mind sharing your experience on Google? It helps other people find us. Here is the link: [Google Review Link]'. "
+    "Paint a scenario: imagine a happy client walking out of the spa. Tell them your system automatically texts the client this exact message: 'Hi [Client Name], thanks for visiting us! If you have 30 seconds, would you mind sharing your experience on Google? It helps other people find us. Here is the link: [Google Review Link]'. "
     "NEVER ask for a phone call; ask a simple yes or no question instead. "
     "End with 'Best regards' only."
 )
@@ -73,12 +73,12 @@ def generate_template_fallback(lead: Lead) -> Dict[str, str]:
         "email_subject": f"Quick question about {name} reviews",
         "email_message": (
             f"Hi Team {name},\n\n"
-            f"You have {reviews} ({rating}) in {city}. Imagine a client just won their case and walks out of your office happy. Right now, they probably forget to leave a review.\n\n"
-            f"My system automatically texts them that same day: 'Hi [Client Name], thanks for trusting us with your case. If you have 30 seconds, would you mind sharing your experience on Google? It helps other people find us. Here is the link: [Google Review Link]'\n\n"
+            f"You have {reviews} ({rating}) in {city}. Imagine a client just had a great treatment and walks out of your spa happy. Right now, they probably forget to leave a review.\n\n"
+            f"My system automatically texts them that same day: 'Hi [Client Name], thanks for visiting us! If you have 30 seconds, would you mind sharing your experience on Google? It helps other people find us. Here is the link: [Google Review Link]'\n\n"
             f"You get 20+ new 5-star reviews a month without lifting a finger. It's $200/month. Want to see how it works?\n\n"
             f"Best regards"
         ),
-        "whatsapp_message": f"Hi {name}! Imagine your happy clients automatically leaving 5-star reviews. I text them the moment they leave your office: 'Hi [Client Name], thanks for trusting us... would you mind sharing your experience on Google?' $200/month. Want to see how?",
+        "whatsapp_message": f"Hi {name}! Imagine your happy clients automatically leaving 5-star reviews. I text them the moment they leave your spa. $200/month. Want to see how?",
     }
 
 
@@ -125,6 +125,7 @@ def personalize_qualified_leads(
     if db is None:
         db = Database(path="data/leadhunter.db")
 
+    # Force the query to ignore city and find ALL qualified leads
     query = "SELECT * FROM leads WHERE status = 'QUALIFIED' ORDER BY id ASC LIMIT ?"
 
     rows = db.conn.execute(query, (limit,)).fetchall()
